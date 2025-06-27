@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JROTC Gallery Dashboard</title>
+<style>
+  body {
+    background: #3a0ca3;
+    color: #d1c4e9;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+  #pageForm {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  #pageForm input {
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 5px 0 0 5px;
+    border: none;
+    width: 200px;
+  }
+  #pageForm button {
+    padding: 10px 20px;
+    background: #7e57c2;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 0 5px 5px 0;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+  }
+  #pageForm button:hover {
+    background: #b39ddb;
+  }
+  #pagesList {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+  }
+  .pageItem {
+    background: #5f4bb6;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pageItem button {
+    background: #9c27b0;
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .pageItem button:hover {
+    background: #ce93d8;
+    color: #3a0ca3;
+  }
+  #dropZone {
+    border: 3px dashed #d1c4e9;
+    border-radius: 15px;
+    padding: 40px;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  #dropZone.hover {
+    background-color: #7e57c2;
+  }
+  #status {
+    margin-top: 10px;
+    text-align: center;
+    min-height: 20px;
+    color: #ce93d8;
+  }
+  #content {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="loginSection">
+  <h1>Login to Dashboard</h1>
+  <form id="loginForm" onsubmit="return false;" style="text-align:center;">
+    <input type="password" id="passwordInput" placeholder="Enter password" style="padding:10px; font-size:1rem; width: 250px; border-radius: 5px;" required />
+    <button id="loginBtn" style="padding:10px 20px; margin-left: 10px; background:#7e57c2; border:none; color:white; cursor:pointer; border-radius:5px; font-weight:600;">Login</button>
+  </form>
+  <p id="loginMessage" style="color:#f88; margin-top:10px;"></p>
+</div>
+
+<div id="content">
+  <h1>JROTC Gallery Dashboard</h1>
+
+  <form id="pageForm" onsubmit="return false;">
+    <input type="text" id="pageNameInput" placeholder="Enter new page name" required />
+    <button id="addPageBtn">Add Page</button>
+  </form>
+
+  <div id="pagesList">
+    <!-- List of pages will appear here -->
+  </div>
+
+  <div id="dropZone">
+    Drag & Drop Images Here to Upload to Selected Page
+    <br />
+    <small>Or click here to select files</small>
+    <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" />
+  </div>
+  <div id="status"></div>
+</div>
+
+<script>
+  const correctPassword = "afjrotc25"; // Updated password
+  const loginSection = document.getElementById('loginSection');
+  const contentSection = document.getElementById('content');
+  const loginBtn = document.getElementById('loginBtn');
+  const passwordInput = document.getElementById('passwordInput');
+  const loginMessage = document.getElementById('loginMessage');
+
+  // Check if already logged in (sessionStorage)
+  if (sessionStorage.getItem('dashboardLoggedIn') === 'true') {
+    showContent();
+  }
+
+  loginBtn.onclick = () => {
+    const pass = passwordInput.value;
+    if (pass === correctPassword) {
+      sessionStorage.setItem('dashboardLoggedIn', 'true');
+      showContent();
+    } else {
+      loginMessage.textContent = "Incorrect password, please try again.";
+      passwordInput.value = '';
+    }
+  };
+
+  function showContent() {
+    loginSection.style.display = 'none';
+    contentSection.style.display = 'block';
+    initializeDashboard();
+  }
+
+  // Dashboard logic starts here
+
+  let pages = JSON.parse(localStorage.getItem('pages') || '{}');
+  let selectedPage = null;
+
+  const pagesList = document.getElementById('pagesList');
+  const pageNameInput = document.getElementById('pageNameInput');
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const status = document.getElementById('status');
+
+  function savePages() {
+    localStorage.setItem('pages', JSON.stringify(pages));
+  }
+
+  function renderPages() {
+    pagesList.innerHTML = '';
+    if (Object.keys(pages).length === 0) {
+      pagesList.innerHTML = '<p style="text-align:center; color:#d1c4e9;">No pages created yet.</p>';
+      selectedPage = null;
+      return;
+    }
+
+    for (const page in pages) {
+      const div = document.createElement('div');
+      div.className = 'pageItem';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = page;
+
+      const selectBtn = document.createElement('button');
+      selectBtn.textContent = (page === selectedPage) ? 'Selected' : 'Select';
+      selectBtn.disabled = (page === selectedPage);
+      selectBtn.onclick = () => {
+        selectedPage = page;
+        renderPages();
+        status.textContent = `Selected page: "${page}"`;
+      };
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.onclick = () => {
+        if (confirm(`Delete page "${page}"? This will remove all images.`)) {
+          delete pages[page];
+          if (selectedPage === page) selectedPage = null;
+          savePages();
+          renderPages();
+          status.textContent = `Page "${page}" deleted.`;
+        }
+      };
+
+      div.appendChild(nameSpan);
+      div.appendChild(selectBtn);
+      div.appendChild(deleteBtn);
+
+      pagesList.appendChild(div);
+    }
+  }
+
+  // Add new page
+  document.getElementById('addPageBtn').onclick = () => {
+    const newName = pageNameInput.value.trim();
+    if (!newName) {
+      alert('Please enter a page name.');
+      return;
+    }
+    if (pages[newName]) {
+      alert('Page already exists. Choose a different name.');
+      return;
+    }
+    pages[newName] = [];
+    savePages();
+    selectedPage = newName;
+    pageNameInput.value = '';
+    renderPages();
+    status.textContent = `Added and selected new page: "${newName}"`;
+  };
+
+  // Drag & drop functionality
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('hover');
+  });
+
+  dropZone.addEventListener('dragleave', e => {
+    e.preventDefault();
+    dropZone.classList.remove('hover');
+  });
+
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('hover');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  dropZone.addEventListener('click', () => {
+    if (!selectedPage) {
+      alert('Please select a page first!');
+      return;
+    }
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    handleFiles(fileInput.files);
+  });
+
+  function handleFiles(files) {
+    if (!selectedPage) {
+      alert('Please select a page first!');
+      return;
+    }
+    if (!files.length) return;
+    status.textContent = `Uploading ${files.length} image(s)...`;
+
+    const promises = Array.from(files).map(file => {
+      return new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) {
+          resolve(null);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = () => reject('File read error');
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(promises)
+      .then(results => {
+        let addedCount = 0;
+        results.forEach(dataUrl => {
+          if (dataUrl) {
+            pages[selectedPage].push(dataUrl);
+            addedCount++;
+          }
+        });
+        savePages();
+        status.textContent = `Added ${addedCount} image(s) to "${selectedPage}".`;
+      })
+      .catch(() => {
+        status.textContent = 'Error uploading images.';
+      });
+  }
+
+  function initializeDashboard() {
+    renderPages();
+  }
+
+</script>
+
+</body>
+</html>
